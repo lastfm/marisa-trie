@@ -21,6 +21,8 @@ class Keyset {
   void push_back(const char *str);
   void push_back(const char *ptr, std::size_t length, float weight = 1.0);
 
+  void push_back_uppercase_of_last_key();
+
   const Key &operator[](std::size_t i) const {
     MARISA_DEBUG_IF(i >= size_, MARISA_BOUND_ERROR);
     return key_blocks_[i / KEY_BLOCK_SIZE][i % KEY_BLOCK_SIZE];

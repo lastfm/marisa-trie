@@ -249,8 +249,10 @@ void LoudsTrie::build_(Keyset &keyset, const Config &config) {
   Vector<Key> keys;
   keys.resize(keyset.size());
   for (std::size_t i = 0; i < keyset.size(); ++i) {
-    keys[i].set_str(keyset[i].ptr(), keyset[i].length());
-    keys[i].set_weight(keyset[i].weight());
+    const marisa::Key& key = keyset[i];
+    keys[i].set_str(key.ptr(), key.length());
+    keys[i].set_upper(key.upper());
+    keys[i].set_weight(key.weight());
   }
 
   Vector<UInt32> terminals;
@@ -405,9 +407,10 @@ void LoudsTrie::build_current_trie(Vector<T> &keys,
       } else {
         bases_.push_back('\0');
         link_flags_.push_back(true);
+        const T& range_key = keys[w_range.begin()];
         T next_key;
-        next_key.set_str(keys[w_range.begin()].ptr(),
-            keys[w_range.begin()].length());
+        next_key.set_str(range_key.ptr(), range_key.length());
+        next_key.set_upper(range_key.upper());
         next_key.substr(w_range.key_pos(), key_pos - w_range.key_pos());
         next_key.set_weight(w_range.weight());
         next_keys.push_back(next_key);
@@ -436,7 +439,9 @@ void LoudsTrie::build_next_trie(Vector<Key> &keys,
     Vector<Entry> entries;
     entries.resize(keys.size());
     for (std::size_t i = 0; i < keys.size(); ++i) {
-      entries[i].set_str(keys[i].ptr(), keys[i].length());
+      const Key& key = keys[i];
+      entries[i].set_str(key.ptr(), key.length());
+      entries[i].set_upper(key.upper());
     }
     tail_.build(entries, terminals, config.tail_mode());
     return;
@@ -444,8 +449,10 @@ void LoudsTrie::build_next_trie(Vector<Key> &keys,
   Vector<ReverseKey> reverse_keys;
   reverse_keys.resize(keys.size());
   for (std::size_t i = 0; i < keys.size(); ++i) {
-    reverse_keys[i].set_str(keys[i].ptr(), keys[i].length());
-    reverse_keys[i].set_weight(keys[i].weight());
+    const Key& key = keys[i];
+    reverse_keys[i].set_str(key.ptr(), key.length());
+    reverse_keys[i].set_upper(key.upper());
+    reverse_keys[i].set_weight(key.weight());
   }
   keys.clear();
   next_trie_.reset(new (std::nothrow) LoudsTrie);
@@ -460,7 +467,9 @@ void LoudsTrie::build_next_trie(Vector<ReverseKey> &keys,
     Vector<Entry> entries;
     entries.resize(keys.size());
     for (std::size_t i = 0; i < keys.size(); ++i) {
-      entries[i].set_str(keys[i].ptr(), keys[i].length());
+      const ReverseKey& key = keys[i];
+      entries[i].set_str(key.ptr(), key.length());
+      entries[i].set_upper(key.upper());
     }
     tail_.build(entries, terminals, config.tail_mode());
     return;

@@ -7,26 +7,19 @@ namespace marisa {
 namespace grimoire {
 namespace trie {
 
+#pragma pack(push,4)
 class Key {
  public:
-  Key() : ptr_(NULL), length_(0), union_(), id_(0) {
-    union_.terminal = 0;
-  }
-  Key(const Key &entry)
-      : ptr_(entry.ptr_), length_(entry.length_),
-        union_(entry.union_), id_(entry.id_) {}
+  Key() : ptr_(NULL), length_(0), upper_(false), union_(), id_(0) { union_.terminal = 0; }
 
-  Key &operator=(const Key &entry) {
-    ptr_ = entry.ptr_;
-    length_ = entry.length_;
-    union_ = entry.union_;
-    id_ = entry.id_;
-    return *this;
-  }
+  Key(const Key &entry) = default;
+
+  Key &operator=(const Key &entry) = default;
 
   char operator[](std::size_t i) const {
     MARISA_DEBUG_IF(i >= length_, MARISA_BOUND_ERROR);
-    return ptr_[i];
+    char c = ptr_[i];
+    return !upper_ ? c : static_cast<char>(toupper(c));
   }
 
   void substr(std::size_t pos, std::size_t length) {
@@ -34,14 +27,17 @@ class Key {
     MARISA_DEBUG_IF(length > length_, MARISA_BOUND_ERROR);
     MARISA_DEBUG_IF(pos > (length_ - length), MARISA_BOUND_ERROR);
     ptr_ += pos;
-    length_ = (UInt32)length;
+    length_ = (UInt16)length;
   }
 
   void set_str(const char *ptr, std::size_t length) {
     MARISA_DEBUG_IF((ptr == NULL) && (length != 0), MARISA_NULL_ERROR);
-    MARISA_DEBUG_IF(length > MARISA_UINT32_MAX, MARISA_SIZE_ERROR);
+    MARISA_DEBUG_IF(length > MARISA_UINT16_MAX, MARISA_SIZE_ERROR);
     ptr_ = ptr;
-    length_ = (UInt32)length;
+    length_ = (UInt16)length;
+  }
+  void set_upper(bool upper) {
+    upper_ = upper;
   }
   void set_weight(float weight) {
     union_.weight = weight;
@@ -61,6 +57,9 @@ class Key {
   std::size_t length() const {
     return length_;
   }
+  bool upper() const {
+    return upper_;
+  }
   float weight() const {
     return union_.weight;
   }
@@ -73,7 +72,8 @@ class Key {
 
  private:
   const char *ptr_;
-  UInt32 length_;
+  UInt16 length_;
+  bool upper_;
   union Union {
     float weight;
     UInt32 terminal;
@@ -115,24 +115,16 @@ inline bool operator>(const Key &lhs, const Key &rhs) {
 
 class ReverseKey {
  public:
-  ReverseKey() : ptr_(NULL), length_(0), union_(), id_(0) {
-    union_.terminal = 0;
-  }
-  ReverseKey(const ReverseKey &entry)
-      : ptr_(entry.ptr_), length_(entry.length_),
-        union_(entry.union_), id_(entry.id_) {}
+  ReverseKey() : ptr_(NULL), length_(0), upper_(false), union_(), id_(0) { union_.terminal = 0; }
 
-  ReverseKey &operator=(const ReverseKey &entry) {
-    ptr_ = entry.ptr_;
-    length_ = entry.length_;
-    union_ = entry.union_;
-    id_ = entry.id_;
-    return *this;
-  }
+  ReverseKey(const ReverseKey &entry) = default;
+
+  ReverseKey &operator=(const ReverseKey &entry) = default;
 
   char operator[](std::size_t i) const {
     MARISA_DEBUG_IF(i >= length_, MARISA_BOUND_ERROR);
-    return *(ptr_ - i - 1);
+    char c = *(ptr_ - i - 1);
+    return !upper_ ? c : static_cast<char>(toupper(c));
   }
 
   void substr(std::size_t pos, std::size_t length) {
@@ -140,14 +132,17 @@ class ReverseKey {
     MARISA_DEBUG_IF(length > length_, MARISA_BOUND_ERROR);
     MARISA_DEBUG_IF(pos > (length_ - length), MARISA_BOUND_ERROR);
     ptr_ -= pos;
-    length_ = (UInt32)length;
+    length_ = (UInt16)length;
   }
 
   void set_str(const char *ptr, std::size_t length) {
     MARISA_DEBUG_IF((ptr == NULL) && (length != 0), MARISA_NULL_ERROR);
-    MARISA_DEBUG_IF(length > MARISA_UINT32_MAX, MARISA_SIZE_ERROR);
+    MARISA_DEBUG_IF(length > MARISA_UINT16_MAX, MARISA_SIZE_ERROR);
     ptr_ = ptr + length;
-    length_ = (UInt32)length;
+    length_ = (UInt16)length;
+  }
+  void set_upper(bool upper) {
+    upper_ = upper;
   }
   void set_weight(float weight) {
     union_.weight = weight;
@@ -167,6 +162,9 @@ class ReverseKey {
   std::size_t length() const {
     return length_;
   }
+  bool upper() const {
+    return upper_;
+  }
   float weight() const {
     return union_.weight;
   }
@@ -179,7 +177,8 @@ class ReverseKey {
 
  private:
   const char *ptr_;
-  UInt32 length_;
+  UInt16 length_;
+  bool upper_;
   union Union {
     float weight;
     UInt32 terminal;
@@ -218,6 +217,8 @@ inline bool operator<(const ReverseKey &lhs, const ReverseKey &rhs) {
 inline bool operator>(const ReverseKey &lhs, const ReverseKey &rhs) {
   return rhs < lhs;
 }
+
+#pragma pack(pop)
 
 }  // namespace trie
 }  // namespace grimoire

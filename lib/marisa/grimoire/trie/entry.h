@@ -7,30 +7,29 @@ namespace marisa {
 namespace grimoire {
 namespace trie {
 
+#pragma pack(push,4)
 class Entry {
  public:
-  Entry()
-      : ptr_(static_cast<const char *>(NULL) - 1), length_(0), id_(0) {}
-  Entry(const Entry &entry)
-      : ptr_(entry.ptr_), length_(entry.length_), id_(entry.id_) {}
+  Entry() : ptr_(static_cast<const char *>(NULL) - 1), length_(0), upper_(false), id_(0) {}
 
-  Entry &operator=(const Entry &entry) {
-    ptr_ = entry.ptr_;
-    length_ = entry.length_;
-    id_ = entry.id_;
-    return *this;
-  }
+  Entry(const Entry &entry) = default;
+
+  Entry &operator=(const Entry &entry) = default;
 
   char operator[](std::size_t i) const {
     MARISA_DEBUG_IF(i >= length_, MARISA_BOUND_ERROR);
-    return *(ptr_ - i);
+    char c = *(ptr_ - i);
+    return !upper_ ? c : static_cast<char>(toupper(c));
   }
 
   void set_str(const char *ptr, std::size_t length) {
     MARISA_DEBUG_IF((ptr == NULL) && (length != 0), MARISA_NULL_ERROR);
-    MARISA_DEBUG_IF(length > MARISA_UINT32_MAX, MARISA_SIZE_ERROR);
+    MARISA_DEBUG_IF(length > MARISA_UINT16_MAX, MARISA_SIZE_ERROR);
     ptr_ = ptr + length - 1;
-    length_ = (UInt32)length;
+    length_ = (UInt16)length;
+  }
+  void set_upper(bool upper) {
+    upper_ = upper;
   }
   void set_id(std::size_t id) {
     MARISA_DEBUG_IF(id > MARISA_UINT32_MAX, MARISA_SIZE_ERROR);
@@ -42,6 +41,9 @@ class Entry {
   }
   std::size_t length() const {
     return length_;
+  }
+  bool upper() const {
+    return upper_;
   }
   std::size_t id() const {
     return id_;
@@ -71,9 +73,11 @@ class Entry {
 
  private:
   const char *ptr_;
-  UInt32 length_;
+  UInt16 length_;
+  bool upper_;
   UInt32 id_;
 };
+#pragma pack(pop)
 
 }  // namespace trie
 }  // namespace grimoire

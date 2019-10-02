@@ -73,6 +73,22 @@ void Keyset::push_back(const char *ptr, std::size_t length, float weight) {
   total_length_ += length;
 }
 
+void Keyset::push_back_uppercase_of_last_key() {
+  MARISA_DEBUG_IF(size_ == 0, MARISA_BOUND_ERROR);
+  const Key& last = (*this)[size_ - 1];
+
+  if ((size_ / KEY_BLOCK_SIZE) == key_blocks_size_) {
+    append_key_block();
+  }
+
+  // Add new key, but share string data value for reduced memory usage.
+  Key& new_key = key_blocks_[size_ / KEY_BLOCK_SIZE][size_ % KEY_BLOCK_SIZE];
+  new_key.set_str(last.ptr(), last.length());
+  new_key.set_id(last.id());
+  new_key.set_upper(true);
+  ++size_;
+}
+
 void Keyset::reset() {
   base_blocks_size_ = 0;
   extra_blocks_size_ = 0;
