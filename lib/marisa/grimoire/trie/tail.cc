@@ -14,6 +14,10 @@ void Tail::build(Vector<Entry> &entries, Vector<UInt32> *offsets,
 
   switch (mode) {
     case MARISA_TEXT_TAIL: {
+      // The original code here checks every string to see if it contains a binary NUL char.
+      // If it does the trie mode is automaticaly switched to BINARY instead of TEXT.
+      // We ignore this for speed purposes, since we know that our strings cannot contain NULs.
+      /*
       for (std::size_t i = 0; i < entries.size(); ++i) {
         const char * const ptr = entries[i].ptr();
         const std::size_t length = entries[i].length();
@@ -27,6 +31,7 @@ void Tail::build(Vector<Entry> &entries, Vector<UInt32> *offsets,
           break;
         }
       }
+      */
       break;
     }
     case MARISA_BINARY_TAIL: {
