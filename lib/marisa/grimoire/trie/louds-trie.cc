@@ -8,6 +8,15 @@
 #include "marisa/grimoire/trie/state.h"
 #include "marisa/grimoire/trie/louds-trie.h"
 
+#ifdef HAVE_EASYLOGGING
+    #include <easylogging++.h>
+    #define MAKE_LOGGER() el::Loggers::getLogger("louds");
+    #define LOGIT(output) CLOG(INFO, "louds") << output
+#else
+    #define MAKE_LOGGER()
+    #define LOGIT(output)
+#endif
+
 namespace marisa {
 namespace grimoire {
 namespace trie {
@@ -15,7 +24,10 @@ namespace trie {
 LoudsTrie::LoudsTrie()
     : louds_(), terminal_flags_(), link_flags_(), bases_(), extras_(),
       tail_(), next_trie_(), cache_(), cache_mask_(0), num_l1_nodes_(0),
-      config_(), mapper_() {}
+      config_(), mapper_()
+{
+  MAKE_LOGGER();
+}
 
 LoudsTrie::~LoudsTrie() {}
 
@@ -246,6 +258,7 @@ void LoudsTrie::swap(LoudsTrie &rhs) {
 }
 
 void LoudsTrie::build_(Keyset &keyset, const Config &config) {
+  LOGIT("Creating working key list");
   Vector<Key> keys;
   keys.resize(keyset.size());
   for (std::size_t i = 0; i < keyset.size(); ++i) {
@@ -255,11 +268,13 @@ void LoudsTrie::build_(Keyset &keyset, const Config &config) {
     keys[i].set_weight(key.weight());
   }
 
+  LOGIT("Building trie with terminals");
   Vector<UInt32> terminals;
   build_trie(keys, &terminals, config, 1);
 
   typedef std::pair<UInt32, UInt32> TerminalIdPair;
 
+  LOGIT("Sorting terminals output");
   Vector<TerminalIdPair> pairs;
   pairs.resize(terminals.size());
   for (std::size_t i = 0; i < pairs.size(); ++i) {
@@ -269,6 +284,7 @@ void LoudsTrie::build_(Keyset &keyset, const Config &config) {
   terminals.clear();
   std::sort(pairs.begin(), pairs.end());
 
+  LOGIT("Storing terminal flags");
   std::size_t node_id = 0;
   for (std::size_t i = 0; i < pairs.size(); ++i) {
     while (node_id < pairs[i].first) {
@@ -287,6 +303,7 @@ void LoudsTrie::build_(Keyset &keyset, const Config &config) {
   terminal_flags_.push_back(false);
   terminal_flags_.build(false, true);
 
+  LOGIT("Applying terminal ids to keyset");
   for (std::size_t i = 0; i < keyset.size(); ++i) {
     keyset[pairs[i].second].set_id(terminal_flags_.rank1(pairs[i].first));
   }
@@ -310,6 +327,7 @@ void LoudsTrie::build_trie(Vector<T> &keys,
         config.cache_level());
   }
 
+  LOGIT("Building next terminals");
   link_flags_.build(false, false);
   std::size_t node_id = 0;
   for (std::size_t i = 0; i < next_terminals.size(); ++i) {
@@ -331,6 +349,7 @@ void LoudsTrie::build_current_trie(Vector<T> &keys,
   for (std::size_t i = 0; i < keys.size(); ++i) {
     keys[i].set_id(i);
   }
+  LOGIT("build_current_trie(" << trie_id << "): Sorting keys");
   const std::size_t num_keys = Algorithm().sort(keys.begin(), keys.end());
   reserve_cache(config, trie_id, num_keys);
 
@@ -343,6 +362,7 @@ void LoudsTrie::build_current_trie(Vector<T> &keys,
   std::queue<Range> queue;
   Vector<WeightedRange> w_ranges;
 
+  LOGIT("build_current_trie(" << trie_id << "): Processing ranges");
   queue.push(make_range(0, keys.size(), 0));
   while (!queue.empty()) {
     const std::size_t node_id = link_flags_.size() - queue.size();
@@ -426,6 +446,7 @@ void LoudsTrie::build_current_trie(Vector<T> &keys,
   louds_.build(trie_id == 1, true);
   bases_.shrink();
 
+  LOGIT("build_current_trie(" << trie_id << "): Building terminals");
   build_terminals(keys, terminals);
   keys.swap(next_keys);
 } catch (const std::bad_alloc &) {
@@ -436,6 +457,7 @@ template <>
 void LoudsTrie::build_next_trie(Vector<Key> &keys,
     Vector<UInt32> *terminals, const Config &config, std::size_t trie_id) {
   if (trie_id == config.num_tries()) {
+    LOGIT("build_next_trie(" << trie_id << "): Processing tail key entries");
     Vector<Entry> entries;
     entries.resize(keys.size());
     for (std::size_t i = 0; i < keys.size(); ++i) {
@@ -446,6 +468,8 @@ void LoudsTrie::build_next_trie(Vector<Key> &keys,
     tail_.build(entries, terminals, config.tail_mode());
     return;
   }
+
+  LOGIT("build_next_trie(" << trie_id << "): Creating tail key entry list");
   Vector<ReverseKey> reverse_keys;
   reverse_keys.resize(keys.size());
   for (std::size_t i = 0; i < keys.size(); ++i) {
@@ -464,6 +488,7 @@ template <>
 void LoudsTrie::build_next_trie(Vector<ReverseKey> &keys,
     Vector<UInt32> *terminals, const Config &config, std::size_t trie_id) {
   if (trie_id == config.num_tries()) {
+    LOGIT("build_next_trie(" << trie_id << "): Processing reversed tail key entries");
     Vector<Entry> entries;
     entries.resize(keys.size());
     for (std::size_t i = 0; i < keys.size(); ++i) {
